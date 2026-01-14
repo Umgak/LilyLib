@@ -1,0 +1,9 @@
+[submodule "deps/BytePatch"]
+	path = deps/BytePatch
+	url = https://github.com/Umgak/BytePatch.git
+[submodule "deps/Pattern16"]
+	path = deps/Pattern16
+	url = https://github.com/Dasaav-dsv/Pattern16.git
+[submodule "deps/minhook"]
+	path = deps/minhook
+	url = https://github.com/TsudaKageyu/minhook.git

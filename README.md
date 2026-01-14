@@ -1,0 +1,24 @@
+# LilyLib
+A bunch of of helper functions for my mods
+### Features:
+- One-line hooks
+- Extensive error logger
+- A few handy utility functions
+### Usage:
+Clone the project, and add it and its dependency refs to your project. Sadly, Visual Studio doesn't have a good way to automate this.
+Then, you can call the functions like this:
+```cpp
+#include "LilyLib.h"
+try {
+  LilyLib::Memory::Initialize();
+  LilyLib::Memory::Hook(&DetourFunction, "80 f9 03 73 79");
+  LilyLib::Memory::Patch("83 ff 03 b9 03 00 00 00", "?? ?? 06 ?? 06");
+  LilyLib::Memory::Apply();
+} catch (...) {
+  // add your own error handler here, or use LilyLib::DetailedException
+}
+```
+### Dependencies:
+- [Pattern16](https://github.com/Dasaav-dsv/Pattern16/)
+- [minhook](https://github.com/TsudaKageyu/minhook) ([fork](https://github.com/Umgak/minhook), since the upstream is set to use MT instead of MD)
+- [BytePatch](github.com/Umgak/BytePatch)

@@ -1,0 +1,9 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="deps/BytePatch/BytePatch.vcxproj" Id="ecd85861-abd8-490f-9ac1-9adb3e283d74" />
+  <Project Path="deps/minhook/build/VC17/libMinHook.vcxproj" Id="f142a341-5ee0-442d-a15f-98ae9b48dbae" />
+  <Project Path="LilyLib.vcxproj" Id="dfe36eef-d2ec-48c8-8d2f-d0dbd95e786f" />
+</Solution>
