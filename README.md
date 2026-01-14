@@ -8,7 +8,7 @@ A bunch of of helper functions for my mods
 Clone the project, and add it and its dependency refs to your project. Sadly, Visual Studio doesn't have a good way to automate this.
 Then, you can call the functions like this:
 ```cpp
-#include "LilyLib.h"
+#include "LilyLib.hpp"
 try {
   LilyLib::Memory::Initialize();
   LilyLib::Memory::Hook(&DetourFunction, "80 f9 03 73 79");
