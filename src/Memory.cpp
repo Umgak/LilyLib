@@ -91,21 +91,7 @@ namespace LilyLib::Memory {
 
 	void Hook(void* dest_func, const std::string& aob, const char* module, const char* section)
 	{
-		void* source_func;
-		try {
-			source_func = AOBScanModule(aob, module, section);
-		} catch (...) {
-			std::throw_with_nested(DetailedException(std::source_location::current(),
-				"Failed to locate function to hook."));
-			return;
-		}
-		if (MH_CreateHook(source_func, dest_func, nullptr) != MH_OK)
-		{
-			throw LilyLib::DetailedException(std::source_location::current(),
-				"Failed to hook function.");
-			return;
-		}
-		MH_QueueEnableHook(source_func);
+		Hook(dest_func, aob, 0, module, section);
 		return;
 	}
 
@@ -131,21 +117,7 @@ namespace LilyLib::Memory {
 
 	void Patch(const std::string& aob, const std::string& replacementBytes, const char* module, const char* section) 
 	{
-		void* source_pointer;
-		try {
-			source_pointer = AOBScanModule(aob, module, section);
-		} catch (...) {
-			std::throw_with_nested(DetailedException(std::source_location::current(),
-				"Failed to locate destination to write BytePatch."));
-				return;
-		}
-		if (BP_CreatePatch(source_pointer, replacementBytes) != BP_OK)
-		{
-			throw LilyLib::DetailedException(std::source_location::current(),
-				"Failed to create BytePatch.");
-			return;
-		}
-		BP_QueueEnablePatch(source_pointer);
+		Patch(aob, replacementBytes, 0, module, section);
 		return;
 	}
 
