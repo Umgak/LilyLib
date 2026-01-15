@@ -9,7 +9,10 @@
 	* If not, see <https://opensource.org/licenses/MIT>.
 */
 #include "../include/Util.hpp"
-
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#endif
 namespace LilyLib::Util {
 	std::ofstream uLogFile;
 

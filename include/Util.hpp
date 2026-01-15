@@ -11,10 +11,6 @@
 #pragma once
 #ifndef LILY_LIB_UTIL_H
 #define LILY_LIB_UTIL_H
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-#endif
 #include <filesystem>
 #include <fstream>
 #include <format>
