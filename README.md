@@ -20,5 +20,5 @@ try {
 ```
 ### Dependencies:
 - [Pattern16](https://github.com/Dasaav-dsv/Pattern16/)
-- [minhook](https://github.com/TsudaKageyu/minhook) ([fork](https://github.com/Umgak/minhook), since the upstream is set to use MT instead of MD)
+- [minhook](https://github.com/TsudaKageyu/minhook)
 - [BytePatch](github.com/Umgak/BytePatch)
