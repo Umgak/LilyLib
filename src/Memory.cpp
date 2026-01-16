@@ -48,7 +48,6 @@ namespace LilyLib::Memory {
 				if (memcmp(pe_section, (char*)section[i].Name, IMAGE_SIZEOF_SHORT_NAME) == 0) {
 					start = (void*)(base + section[i].VirtualAddress);
 					size = (size_t)section[i].Misc.VirtualSize;
-					return;
 				}
 			}
 		}
@@ -92,7 +91,6 @@ namespace LilyLib::Memory {
 	void Hook(void* dest_func, const std::string& aob, const char* module, const char* section)
 	{
 		Hook(dest_func, aob, 0, module, section);
-		return;
 	}
 
 	void Hook(void* dest_func, const std::string& aob, size_t offset, const char* module, const char* section)
@@ -103,22 +101,18 @@ namespace LilyLib::Memory {
 		} catch (...) {
 			std::throw_with_nested(DetailedException(std::source_location::current(),
 				"Failed to locate function to hook."));
-			return;
 		}
 		if (MH_CreateHook(source_func, dest_func, nullptr) != MH_OK)
 		{
 			throw LilyLib::DetailedException(std::source_location::current(),
 				"Failed to hook function.");
-			return;
 		}
 		MH_QueueEnableHook(source_func);
-		return;
 	}
 
 	void Patch(const std::string& aob, const std::string& replacementBytes, const char* module, const char* section) 
 	{
 		Patch(aob, replacementBytes, 0, module, section);
-		return;
 	}
 
 	void Patch(const std::string& aob, const std::string& replacementBytes, size_t offset, const char* module, const char* section)
@@ -129,16 +123,13 @@ namespace LilyLib::Memory {
 		} catch (...) {
 			std::throw_with_nested(DetailedException(std::source_location::current(),
 				"Failed to locate destination to write BytePatch."));
-				return;
 		}
 		if (BP_CreatePatch(source_pointer, replacementBytes) != BP_OK)
 		{
 			throw LilyLib::DetailedException(std::source_location::current(),
 				"Failed to create BytePatch.");
-			return;
 		}
 		BP_QueueEnablePatch(source_pointer);
-		return;
 	}
 
 	void Initialize()
@@ -172,6 +163,5 @@ namespace LilyLib::Memory {
 		{
 			throw LilyLib::DetailedException(std::source_location::current(), "Failed to restore BytePatches.");
 		}
-		return;
 	}
 }
