@@ -25,8 +25,8 @@ namespace LilyLib::Memory {
 	void* AOBScanBase(const std::string& aob, const size_t opcodeOffset = 3, const size_t instructionOffset = 7, const char* module = nullptr, const char* section = ".text");
 
 	// Hook a function with Minhook
-	void Hook(void* dest_func, const std::string& aob, const char* module = nullptr, const char* section = ".text");
-	void Hook(void* dest_func, const std::string& aob, size_t offset, const char* module = nullptr, const char* section = ".text");
+	void Hook(const std::string& aob, void* dest_func, const char* module = nullptr, const char* section = ".text");
+	void Hook(const std::string& aob, void* dest_func, size_t offset, const char* module = nullptr, const char* section = ".text");
 
 	// Patch a function with BytePatch
 	void Patch(const std::string& aob, const std::string& replacementBytes, const char* module = nullptr, const char* section = ".text");

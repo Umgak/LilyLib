@@ -88,12 +88,12 @@ namespace LilyLib::Memory {
 		}
 	}
 
-	void Hook(void* dest_func, const std::string& aob, const char* module, const char* section)
+	void Hook(const std::string& aob, void* dest_func, const char* module, const char* section)
 	{
-		Hook(dest_func, aob, 0, module, section);
+		Hook(aob, dest_func, 0, module, section);
 	}
 
-	void Hook(void* dest_func, const std::string& aob, size_t offset, const char* module, const char* section)
+	void Hook(const std::string& aob, void* dest_func, size_t offset, const char* module, const char* section)
 	{
 		void* source_func;
 		try {
