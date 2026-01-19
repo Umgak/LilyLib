@@ -48,6 +48,7 @@ namespace LilyLib::Memory {
 				if (memcmp(pe_section, (char*)section[i].Name, IMAGE_SIZEOF_SHORT_NAME) == 0) {
 					start = (void*)(base + section[i].VirtualAddress);
 					size = (size_t)section[i].Misc.VirtualSize;
+					break;
 				}
 			}
 		}
