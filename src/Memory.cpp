@@ -14,6 +14,9 @@
 #include <Windows.h>
 #endif
 #include <Psapi.h>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 #include "../include/Memory.hpp"
 #include "../include/Exception.hpp"
 
@@ -22,54 +25,87 @@
 #include "../deps/BytePatch/include/BytePatch.hpp"
 
 namespace LilyLib::Memory {
-	struct MemoryRegion {
-		void *start = 0;
-		size_t size = 0;
+	struct MemRegionCache {
+		struct MemoryRegion {
+			void* start = 0;
+			size_t size = 0;
+		};
+		// cache for memory regions
+		static inline std::unordered_map<std::string,
+			std::unordered_map<std::string, std::vector<MemoryRegion>>> _data;
 
-		MemoryRegion(const char* module, const char* pe_section) {
+		static void cacheModule(const char* module) {
+			std::string moduleName = (module == nullptr) ? "MAIN_EXE" : module;
+			if (_data.contains(moduleName)) return;
 			HMODULE hModule = GetModuleHandleA(module);
+			if (!hModule) {
+				throw DetailedException(std::source_location::current(),
+					"GetModuleHandleA failed for module: {}.\nError: {}", moduleName, GetLastError());
+			}
+
 			MODULEINFO modInfo{};
-			
 			if (!GetModuleInformation(GetCurrentProcess(), hModule, &modInfo, sizeof(modInfo)))
 			{
-				throw DetailedException(std::source_location::current(), 
-					"Failed to create MemoryRegion: GetModuleInformation returned {} while looking for section {} of module {}.", 
-					GetLastError(), 
-					pe_section, 
-					module);
+				throw DetailedException(std::source_location::current(),
+					"Failed to create MemoryRegion map!\nGetModuleInformation returned {} while looking for module {}.",
+					GetLastError(),
+					moduleName);
 			}
-			uintptr_t base = (uintptr_t)modInfo.lpBaseOfDll;
-
-			IMAGE_DOS_HEADER* dosHeader = (IMAGE_DOS_HEADER*)base;
-			IMAGE_NT_HEADERS* ntHeader = (IMAGE_NT_HEADERS*)((uintptr_t)base + dosHeader->e_lfanew);
-			IMAGE_SECTION_HEADER* section = IMAGE_FIRST_SECTION(ntHeader);
+			uintptr_t base = reinterpret_cast<uintptr_t>(modInfo.lpBaseOfDll);
+			auto* dosHeader = reinterpret_cast<IMAGE_DOS_HEADER*>(base);
+			auto* ntHeader = reinterpret_cast<IMAGE_NT_HEADERS*>(base + dosHeader->e_lfanew);
+			auto* section = IMAGE_FIRST_SECTION(ntHeader);
 
 			for (int i = 0; i < ntHeader->FileHeader.NumberOfSections; i++) {
-				if (memcmp(pe_section, (char*)section[i].Name, IMAGE_SIZEOF_SHORT_NAME) == 0) {
-					start = (void*)(base + section[i].VirtualAddress);
-					size = (size_t)section[i].Misc.VirtualSize;
-					break;
-				}
+				char nameBuf[IMAGE_SIZEOF_SHORT_NAME + 1]{};
+				memcpy(nameBuf, section[i].Name, IMAGE_SIZEOF_SHORT_NAME);
+				std::string sectionName = nameBuf;
+
+				auto start = reinterpret_cast<void*>(base + section[i].VirtualAddress);
+				auto size = static_cast<size_t>(section[i].Misc.VirtualSize);
+				_data[moduleName][sectionName].emplace_back(start, size);
 			}
+		}
+
+		static const std::vector<MemoryRegion>& Get(const char* module, const char* section) {
+			std::string moduleName = (module == nullptr) ? "MAIN_EXE" : module;
+			try {
+				cacheModule(module);
+			}
+			catch (...) {
+				std::throw_with_nested(DetailedException(std::source_location::current(),
+					"While attempting to cache module {}", moduleName));
+			}
+			auto moduleIt = _data.find(moduleName);
+			if (moduleIt == _data.end()) {
+				throw DetailedException(std::source_location::current(),
+					"Failed to locate module {} in map!", moduleName);
+			}
+			auto sectionIt = moduleIt->second.find(section);
+			if (sectionIt == moduleIt->second.end()) {
+				throw DetailedException(std::source_location::current(),
+					"Failed to locate section {} of module {}!", section, moduleName);
+			}
+			return sectionIt->second;
 		}
 	};
 
 	void* AOBScanModule(const std::string& aob, const char* module, const char* section)
 	{
-		void* address = nullptr;
 		try {
-			MemoryRegion mem(module, section);
-			address = Pattern16::scan(mem.start, mem.size, aob);                
+			const auto& regions = MemRegionCache::Get(module, section);
+			for (const auto& region : regions)
+			{
+				void* address = Pattern16::scan(region.start, region.size, aob);
+				if (address) return address;
+			}
 		} catch (...) {
 			std::throw_with_nested(DetailedException(std::source_location::current(),
 				"While attempting to locate pattern: {}", aob));
 		}
-		if (address == nullptr)
-		{
-			throw DetailedException(std::source_location::current(),
-				"Failed to locate pattern: {}", aob);
-		}
-		return address;
+		// failed, panic
+		throw DetailedException(std::source_location::current(),
+			"Failed to locate pattern: {}", aob);
 	}
 
 	void* AOBScanModule(const std::string& aob, size_t offset, const char* module, const char* section)
