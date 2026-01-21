@@ -11,7 +11,7 @@ Then, you can call the functions like this:
 #include "LilyLib.hpp"
 try {
   LilyLib::Memory::Initialize();
-  LilyLib::Memory::Hook(&DetourFunction, "80 f9 03 73 79");
+  LilyLib::Memory::Hook("80 f9 03 73 79", &DetourFunction);
   LilyLib::Memory::Patch("83 ff 03 b9 03 00 00 00", "?? ?? 06 ?? 06");
   LilyLib::Memory::Apply();
 } catch (...) {
