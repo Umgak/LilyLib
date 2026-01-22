@@ -11,9 +11,9 @@
 */
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+#include <windows.h>
 #endif
-#include <Psapi.h>
+#include <psapi.h>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -108,17 +108,17 @@ namespace LilyLib::Memory {
 			"Failed to locate pattern: {}", aob);
 	}
 
-	void* AOBScanModule(const std::string& aob, size_t offset, const char* module, const char* section)
+	void* AOBScanModule(const std::string& aob, const ptrdiff_t offset, const char* module, const char* section)
 	{
-		char* address = (char*)AOBScanModule(aob, module, section);
-		return reinterpret_cast<void*>(address + offset);
+		void* address = AOBScanModule(aob, module, section);
+		return reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(address) + offset);
 	}
 
-	void* AOBScanBase(const std::string& aob, const size_t opcodeOffset, const size_t instructionOffset, const char* module, const char* section)
+	void* AOBScanBase(const std::string& aob, const ptrdiff_t opcodeOffset, const ptrdiff_t instructionOffset, const char* module, const char* section)
 	{
 		try {
-			char* address = (char*)AOBScanModule(aob, module, section);
-			return reinterpret_cast<void*>(address + *reinterpret_cast<int32_t*>(address + opcodeOffset) + instructionOffset);
+			uintptr_t address = reinterpret_cast<uintptr_t>(AOBScanModule(aob, module, section));
+			return reinterpret_cast<void*>(address + instructionOffset + *reinterpret_cast<int32_t*>(address+opcodeOffset));
 		} catch (...) {
 			std::throw_with_nested(DetailedException(std::source_location::current(),
 				"Failed to locate base."));
@@ -130,7 +130,7 @@ namespace LilyLib::Memory {
 		Hook(aob, dest_func, 0, module, section);
 	}
 
-	void Hook(const std::string& aob, void* dest_func, size_t offset, const char* module, const char* section)
+	void Hook(const std::string& aob, void* dest_func, const ptrdiff_t offset, const char* module, const char* section)
 	{
 		void* source_func;
 		try {
@@ -152,7 +152,7 @@ namespace LilyLib::Memory {
 		Patch(aob, replacementBytes, 0, module, section);
 	}
 
-	void Patch(const std::string& aob, const std::string& replacementBytes, size_t offset, const char* module, const char* section)
+	void Patch(const std::string& aob, const std::string& replacementBytes, const ptrdiff_t offset, const char* module, const char* section)
 	{
 		void* source_pointer;
 		try {
