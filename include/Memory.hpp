@@ -18,20 +18,20 @@
 
 namespace LilyLib::Memory {
 	// Use Pattern16 to scan memory (by default .text section) for an AOB
-	void* AOBScanModule(const std::string& aob, const char* module = nullptr, const char* section = ".text");
-	void* AOBScanModule(const std::string& aob, const ptrdiff_t offset, const char* module = nullptr, const char* section = ".text");
+	void* AOBScanModule(const std::string& aob, const char* const module = nullptr, const char* const section = ".text");
+	void* AOBScanModule(const std::string& aob, const ptrdiff_t offset, const char* const module = nullptr, const char* const section = ".text");
 	
 	// Extract a base pointer from a RIP-relative instruction
 	// by default, 64 bit mov is the target, but this can be overriden with instructionOffset and opcodeOffset
-	void* AOBScanBase(const std::string& aob, const ptrdiff_t opcodeOffset = 3, const ptrdiff_t instructionOffset = 7, const char* module = nullptr, const char* section = ".text");
+	void* AOBScanBase(const std::string& aob, const ptrdiff_t opcodeOffset = 3, const ptrdiff_t instructionOffset = 7, const char* const module = nullptr, const char* const section = ".text");
 
 	// Hook a function with Minhook
-	void Hook(const std::string& aob, void* dest_func, const char* module = nullptr, const char* section = ".text");
-	void Hook(const std::string& aob, void* dest_func, const ptrdiff_t offset, const char* module = nullptr, const char* section = ".text");
+	void Hook(const std::string& aob, void* dest_func, const char* const module = nullptr, const char* const section = ".text");
+	void Hook(const std::string& aob, void* dest_func, const ptrdiff_t offset, const char* const module = nullptr, const char* const section = ".text");
 
 	// Patch a function with BytePatch
-	void Patch(const std::string& aob, const std::string& replacementBytes, const char* module = nullptr, const char* section = ".text");
-	void Patch(const std::string& aob, const std::string& replacementBytes, const ptrdiff_t offset, const char* module = nullptr, const char* section = ".text");
+	void Patch(const std::string& aob, const std::string& replacementBytes, const char* const module = nullptr, const char* const section = ".text");
+	void Patch(const std::string& aob, const std::string& replacementBytes, const ptrdiff_t offset, const char* const module = nullptr, const char* const section = ".text");
 
 	// Required: MinHook setup.
 	void Initialize();

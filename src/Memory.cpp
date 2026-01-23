@@ -13,12 +13,12 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #endif
-#include <psapi.h>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 #include "../include/Memory.hpp"
 #include "../include/Exception.hpp"
+#include "../include/Hash.hpp"
 
 #include "../deps/Pattern16/include/Pattern16.h"
 #include "../deps/minhook/include/MinHook.h"
@@ -31,66 +31,48 @@ namespace LilyLib::Memory {
 			size_t size = 0;
 		};
 		// cache for memory regions
-		static inline std::unordered_map<std::string,
-			std::unordered_map<std::string, std::vector<MemoryRegion>>> _data;
+		static inline std::unordered_map<HMODULE,
+			std::unordered_map<uint64_t, std::vector<MemoryRegion>>> _data;
 
-		static void cacheModule(const char* module) {
-			std::string moduleName = (module == nullptr) ? "MAIN_EXE" : module;
-			if (_data.contains(moduleName)) return;
-			HMODULE hModule = GetModuleHandleA(module);
-			if (!hModule) {
-				throw DetailedException(std::source_location::current(),
-					"GetModuleHandleA failed for module: {}.\nError: {}", moduleName, GetLastError());
-			}
-
-			MODULEINFO modInfo{};
-			if (!GetModuleInformation(GetCurrentProcess(), hModule, &modInfo, sizeof(modInfo)))
-			{
-				throw DetailedException(std::source_location::current(),
-					"Failed to create MemoryRegion map!\nGetModuleInformation returned {} while looking for module {}.",
-					GetLastError(),
-					moduleName);
-			}
-			uintptr_t base = reinterpret_cast<uintptr_t>(modInfo.lpBaseOfDll);
+		static void cacheModule(const HMODULE hModule) {
+			uintptr_t base = reinterpret_cast<uintptr_t>(hModule);
 			auto* dosHeader = reinterpret_cast<IMAGE_DOS_HEADER*>(base);
-			auto* ntHeader = reinterpret_cast<IMAGE_NT_HEADERS*>(base + dosHeader->e_lfanew);
+			auto* ntHeader = reinterpret_cast<IMAGE_NT_HEADERS64*>(base + dosHeader->e_lfanew);
 			auto* section = IMAGE_FIRST_SECTION(ntHeader);
 
 			for (int i = 0; i < ntHeader->FileHeader.NumberOfSections; i++) {
 				char nameBuf[IMAGE_SIZEOF_SHORT_NAME + 1]{};
 				memcpy(nameBuf, section[i].Name, IMAGE_SIZEOF_SHORT_NAME);
-				std::string sectionName = nameBuf;
+				uint64_t sHash = Hash::hash_64(nameBuf);
 
 				auto start = reinterpret_cast<void*>(base + section[i].VirtualAddress);
 				auto size = static_cast<size_t>(section[i].Misc.VirtualSize);
-				_data[moduleName][sectionName].emplace_back(start, size);
+				_data[hModule][sHash].emplace_back(start, size);
 			}
 		}
 
-		static const std::vector<MemoryRegion>& Get(const char* module, const char* section) {
-			std::string moduleName = (module == nullptr) ? "MAIN_EXE" : module;
-			try {
-				cacheModule(module);
+		static const std::vector<MemoryRegion>& Get(const char* const module, const char* const section) {
+			HMODULE hModule = GetModuleHandleA(module);
+			if (!hModule) {
+				throw DetailedException(std::source_location::current(),
+				"GetModuleHandleA failed for module: {}.\nError: {}", module ? module : "nullptr", GetLastError());
 			}
-			catch (...) {
-				std::throw_with_nested(DetailedException(std::source_location::current(),
-					"While attempting to cache module {}", moduleName));
-			}
-			auto moduleIt = _data.find(moduleName);
+			auto moduleIt = _data.find(hModule);
 			if (moduleIt == _data.end()) {
-				throw DetailedException(std::source_location::current(),
-					"Failed to locate module {} in map!", moduleName);
+				cacheModule(hModule);
+				moduleIt = _data.find(hModule);
 			}
-			auto sectionIt = moduleIt->second.find(section);
-			if (sectionIt == moduleIt->second.end()) {
+			auto& sectionMap = moduleIt->second;
+			auto sectionIt = sectionMap.find(Hash::hash_64(section));
+			if (sectionIt == sectionMap.end()) {
 				throw DetailedException(std::source_location::current(),
-					"Failed to locate section {} of module {}!", section, moduleName);
+					"Failed to locate section {} of module {}!", section, module ? module : "nullptr");
 			}
 			return sectionIt->second;
 		}
 	};
 
-	void* AOBScanModule(const std::string& aob, const char* module, const char* section)
+	void* AOBScanModule(const std::string& aob, const char* const module, const char* const section)
 	{
 		try {
 			const auto& regions = MemRegionCache::Get(module, section);
@@ -108,13 +90,13 @@ namespace LilyLib::Memory {
 			"Failed to locate pattern: {}", aob);
 	}
 
-	void* AOBScanModule(const std::string& aob, const ptrdiff_t offset, const char* module, const char* section)
+	void* AOBScanModule(const std::string& aob, const ptrdiff_t offset, const char* const module, const char* const section)
 	{
 		void* address = AOBScanModule(aob, module, section);
 		return reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(address) + offset);
 	}
 
-	void* AOBScanBase(const std::string& aob, const ptrdiff_t opcodeOffset, const ptrdiff_t instructionOffset, const char* module, const char* section)
+	void* AOBScanBase(const std::string& aob, const ptrdiff_t opcodeOffset, const ptrdiff_t instructionOffset, const char* const module, const char* const section)
 	{
 		try {
 			uintptr_t address = reinterpret_cast<uintptr_t>(AOBScanModule(aob, module, section));
@@ -125,12 +107,12 @@ namespace LilyLib::Memory {
 		}
 	}
 
-	void Hook(const std::string& aob, void* dest_func, const char* module, const char* section)
+	void Hook(const std::string& aob, void* dest_func, const char* const module, const char* const section)
 	{
 		Hook(aob, dest_func, 0, module, section);
 	}
 
-	void Hook(const std::string& aob, void* dest_func, const ptrdiff_t offset, const char* module, const char* section)
+	void Hook(const std::string& aob, void* dest_func, const ptrdiff_t offset, const char* const module, const char* const section)
 	{
 		void* source_func;
 		try {
@@ -147,12 +129,12 @@ namespace LilyLib::Memory {
 		MH_QueueEnableHook(source_func);
 	}
 
-	void Patch(const std::string& aob, const std::string& replacementBytes, const char* module, const char* section) 
+	void Patch(const std::string& aob, const std::string& replacementBytes, const char* const module, const char* const section) 
 	{
 		Patch(aob, replacementBytes, 0, module, section);
 	}
 
-	void Patch(const std::string& aob, const std::string& replacementBytes, const ptrdiff_t offset, const char* module, const char* section)
+	void Patch(const std::string& aob, const std::string& replacementBytes, const ptrdiff_t offset, const char* const module, const char* const section)
 	{
 		void* source_pointer;
 		try {
@@ -191,14 +173,9 @@ namespace LilyLib::Memory {
 	
 	void Unhook()
 	{
+		// Don't throw exceptions while dying. Just die.
 		MH_DisableHook(MH_ALL_HOOKS);
-		if (MH_Uninitialize() != MH_OK)
-		{
-			throw LilyLib::DetailedException(std::source_location::current(), "Failed to uninitialize MinHook.");
-		}
-		if (BP_DisablePatch(BP_ALL_PATCHES) != BP_OK)
-		{
-			throw LilyLib::DetailedException(std::source_location::current(), "Failed to restore BytePatches.");
-		}
+		MH_Uninitialize();
+		BP_DisablePatch(BP_ALL_PATCHES);
 	}
 }

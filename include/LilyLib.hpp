@@ -1,5 +1,5 @@
 /*
-	* LilyLib::Exception
+	* LilyLib
 	* main header
 
 	* Copyright (c) 2026 Lily
@@ -14,4 +14,5 @@
 #include "Util.hpp"
 #include "Memory.hpp"
 #include "Exception.hpp"
+#include "Hash.hpp"
 #endif
