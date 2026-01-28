@@ -13,7 +13,7 @@
 namespace LilyLib {
 	void DetailedException::ComposeTrace(const std::exception &e, std::string &out, int level)
 	{
-		if (level > 0) out += "\n\n--- Caused by ---";
+		out += (level == 0) ? "Unhandled exception caught!\n" : "\n\n--- Caused by ---";
 		out += e.what();
 		
 		try {
@@ -32,11 +32,13 @@ namespace LilyLib {
 		size_t last_space = func.find_last_of(' ');
 		if (last_space != std::string::npos) func.erase(0, last_space + 1);
 
-		// Don't want the entire god damn filepath either
-		std::filesystem::path p = loc.file_name();
-		std::string relative_path = std::filesystem::relative(p, PROJECT_ROOT).string();
-
-
+#ifdef _DEBUG
+		// strip at runtime
+		std::string relative_path = std::filesystem::relative(loc.file_name(), SOLUTION_ROOT).string()
+#else
+		// already stripped at compile time
+		std::string relative_path = loc.file_name();
+#endif
 		return std::format(R"(
 {}
   in function {}
